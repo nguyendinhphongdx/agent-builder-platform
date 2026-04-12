@@ -1,0 +1,100 @@
+{
+  "rabbit_version": "3.13.0",
+  "users": [
+    {
+      "name": "agentbuilder",
+      "password_hash": "agentbuilder_secret",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"]
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "agentbuilder",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "agentbuilder.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "knowledge.process",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "workflow.execute",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "tool.execute",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notification.send",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "agentbuilder.events",
+      "vhost": "/",
+      "destination": "knowledge.process",
+      "destination_type": "queue",
+      "routing_key": "knowledge.#",
+      "arguments": {}
+    },
+    {
+      "source": "agentbuilder.events",
+      "vhost": "/",
+      "destination": "workflow.execute",
+      "destination_type": "queue",
+      "routing_key": "workflow.#",
+      "arguments": {}
+    },
+    {
+      "source": "agentbuilder.events",
+      "vhost": "/",
+      "destination": "tool.execute",
+      "destination_type": "queue",
+      "routing_key": "tool.#",
+      "arguments": {}
+    },
+    {
+      "source": "agentbuilder.events",
+      "vhost": "/",
+      "destination": "notification.send",
+      "destination_type": "queue",
+      "routing_key": "notification.#",
+      "arguments": {}
+    }
+  ]
+}

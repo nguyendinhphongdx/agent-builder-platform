@@ -1,0 +1,22 @@
+{
+  "name": "agent-builder-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agent Builder Platform - Build, manage and orchestrate AI agents",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:api": "cd apps/api && npm run start:dev",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "build:web": "cd apps/web && npm run build",
+    "build:api": "cd apps/api && npm run build",
+    "build": "npm run build:web && npm run build:api",
+    "services:up": "docker-compose up -d",
+    "services:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

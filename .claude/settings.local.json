@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx create-next-app@latest agent-builder-platform --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx @nestjs/cli new api --package-manager npm --skip-git --strict)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(npx nest:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s https://raw.githubusercontent.com/nguyendinhphongdx/boilerplates/master/nestjs-boiler/src/common/middleware/request-context.middleware.ts)",
+      "Bash(curl -s https://raw.githubusercontent.com/nguyendinhphongdx/boilerplates/master/nestjs-boiler/src/common/context/request-context.ts)",
+      "Bash(curl -s https://raw.githubusercontent.com/nguyendinhphongdx/boilerplates/master/nestjs-boiler/src/app.module.ts)",
+      "Bash(grep -rn \"from.*request-context'\" src/modules/ --include=\"*.ts\")",
+      "Bash(grep -rn \"RequestContext\\\\.\" src/modules/ --include=\"*.ts\")",
+      "Bash(echo \"EXIT:$?\")"
+    ]
+  }
+}
