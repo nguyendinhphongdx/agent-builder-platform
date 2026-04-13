@@ -10,6 +10,7 @@ import { CreateToolDto } from './dto/create-tool.dto';
 import { UpdateToolDto } from './dto/update-tool.dto';
 import { TestToolDto } from './dto/test-tool.dto';
 import { RequestContextService } from '../../common/context';
+import { ToolExecutorService } from './executors/tool-executor.service';
 
 @Injectable()
 export class ToolsService {
@@ -17,6 +18,7 @@ export class ToolsService {
     @InjectRepository(Tool)
     private readonly toolRepo: Repository<Tool>,
     private readonly ctx: RequestContextService,
+    private readonly toolExecutor: ToolExecutorService,
   ) {}
 
   async findAll() {
@@ -96,16 +98,20 @@ export class ToolsService {
   ): Promise<Record<string, any>> {
     const tool = await this.findOne(id);
 
-    // Mock tool execution
+    const result = await this.toolExecutor.execute(
+      tool.type,
+      tool.config || {},
+      dto.input || {},
+    );
+
     return {
-      success: true,
+      success: result.success,
       tool: tool.name,
       type: tool.type,
       input: dto.input,
-      output: {
-        message: `Tool "${tool.name}" executed successfully (mock)`,
-        timestamp: new Date().toISOString(),
-      },
+      output: result.output,
+      error: result.error,
+      durationMs: result.durationMs,
     };
   }
 }

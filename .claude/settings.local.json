@@ -15,7 +15,9 @@
       "Bash(curl -s https://raw.githubusercontent.com/nguyendinhphongdx/boilerplates/master/nestjs-boiler/src/app.module.ts)",
       "Bash(grep -rn \"from.*request-context'\" src/modules/ --include=\"*.ts\")",
       "Bash(grep -rn \"RequestContext\\\\.\" src/modules/ --include=\"*.ts\")",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"API_EXIT:$?\")",
+      "Bash(echo \"API:$?\")"
     ]
   }
 }

@@ -6,12 +6,14 @@ import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-import { databaseConfig, appConfig, jwtConfig } from './config';
+import { databaseConfig, appConfig, jwtConfig, redisConfig, rabbitmqConfig } from './config';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
 import { RequestContextModule } from './common/context';
+import { RedisModule } from './common/redis';
+import { QueueModule } from './common/queue';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -35,7 +37,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, appConfig, jwtConfig],
+      load: [databaseConfig, appConfig, jwtConfig, redisConfig, rabbitmqConfig],
       envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
@@ -50,6 +52,8 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
       serveRoot: '/uploads',
     }),
     RequestContextModule,
+    RedisModule,
+    QueueModule,
     AuthModule,
     UsersModule,
     AgentsModule,

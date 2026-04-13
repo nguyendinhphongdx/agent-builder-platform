@@ -64,30 +64,42 @@ export class ChatController {
         content: m.content,
       }));
 
-      // Stream response
+      // Stream response via LLM (falls back to mock on error)
       let fullResponse = '';
-      const stream = this.chatService.mockLLMStream(messages, agent);
+      const stream = this.chatService.streamResponse(messages, agent);
 
-      for await (const token of stream) {
-        fullResponse += token;
-        res.write(`event: token\ndata: ${JSON.stringify({ delta: token })}\n\n`);
+      for await (const event of stream) {
+        if (event.type === 'token') {
+          const delta = (event.data as Record<string, string>).delta;
+          fullResponse += delta;
+          res.write(`event: token\ndata: ${JSON.stringify({ delta })}\n\n`);
+        } else if (event.type === 'done') {
+          // Save assistant message
+          const tokenCount = fullResponse.split(' ').length * 2; // rough estimate
+          await this.chatService.saveAssistantMessage(
+            sessionId,
+            fullResponse.trim(),
+            { tokens: tokenCount },
+          );
+
+          // Update session stats
+          await this.chatService.updateSessionStats(sessionId, tokenCount);
+
+          // Send done event
+          res.write(
+            `event: done\ndata: ${JSON.stringify({ usage: { total_tokens: tokenCount } })}\n\n`,
+          );
+        } else if (event.type === 'tool_call') {
+          res.write(
+            `event: tool_call\ndata: ${JSON.stringify(event.data)}\n\n`,
+          );
+        } else if (event.type === 'error') {
+          res.write(
+            `event: error\ndata: ${JSON.stringify(event.data)}\n\n`,
+          );
+        }
       }
 
-      // Save assistant message
-      const tokenCount = fullResponse.split(' ').length * 2; // rough estimate
-      await this.chatService.saveAssistantMessage(
-        sessionId,
-        fullResponse.trim(),
-        { tokens: tokenCount },
-      );
-
-      // Update session stats
-      await this.chatService.updateSessionStats(sessionId, tokenCount);
-
-      // Send done event
-      res.write(
-        `event: done\ndata: ${JSON.stringify({ usage: { total_tokens: tokenCount } })}\n\n`,
-      );
       res.end();
     } catch (error: any) {
       res.write(

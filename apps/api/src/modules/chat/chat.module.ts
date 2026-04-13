@@ -5,11 +5,17 @@ import { ChatService } from './chat.service';
 import { ChatSession } from './entities/chat-session.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { Agent } from '../agents/entities/agent.entity';
+import { LlmService } from './llm/llm.service';
+import { AgentGraphService } from './langgraph/agent-graph.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ChatSession, ChatMessage, Agent])],
+  imports: [
+    TypeOrmModule.forFeature([ChatSession, ChatMessage, Agent]),
+    AuthModule,
+  ],
   controllers: [ChatController],
-  providers: [ChatService],
-  exports: [ChatService],
+  providers: [ChatService, LlmService, AgentGraphService],
+  exports: [ChatService, LlmService, AgentGraphService],
 })
 export class ChatModule {}

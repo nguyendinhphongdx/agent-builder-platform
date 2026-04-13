@@ -5,7 +5,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthController } from './auth.controller';
+import { TenantLlmKeysController } from './tenant-llm-keys.controller';
 import { AuthService } from './auth.service';
+import { TenantLlmKeysService } from './tenant-llm-keys.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 
@@ -36,8 +38,8 @@ import { UsersModule } from '../users/users.module';
     }),
     UsersModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
-  exports: [AuthService],
+  controllers: [AuthController, TenantLlmKeysController],
+  providers: [AuthService, TenantLlmKeysService, JwtStrategy, JwtRefreshStrategy],
+  exports: [AuthService, TenantLlmKeysService],
 })
 export class AuthModule {}

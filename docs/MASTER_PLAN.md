@@ -100,6 +100,39 @@ root/
 
 ---
 
+## What's DONE (Phase 2 - Partial)
+
+### P0 - LLM + LangGraph (DONE)
+
+- [x] **LLM Service** (`chat/llm/llm.service.ts`): OpenAI SDK → LiteLLM proxy, streaming + non-streaming
+- [x] **Chat SSE**: real LLM streaming with fallback to mock when LiteLLM unavailable
+- [x] **LangGraph Agent Graph**: StateGraph with LLM Node → Tool Node → loop, conditional edges
+- [x] **Agent Graph Service**: injectable NestJS service wrapping LangGraph execution
+- [x] **Router Node**: placeholder for Super Agent mode (ready for implementation)
+
+### P1 - Tool Executors (DONE)
+
+- [x] **HTTP Executor**: real axios requests, template variables, auth (api_key/bearer/basic)
+- [x] **Code Executor**: JavaScript sandbox via Node.js vm, captured console output, timeout
+- [x] **DB Query Executor**: query preparation with escaping (real DB connection TODO)
+- [x] **Web Search Executor**: DuckDuckGo instant answer API integration
+- [x] **File Parser Executor**: reads txt/md/csv/json/xml/yaml (PDF/DOCX TODO)
+- [x] **MCP Server Executor**: stub ready for MCP protocol
+- [x] **Email Executor**: stub (SMTP TODO)
+- [x] **Webhook Executor**: POST with secret header + retry
+- [x] **Tool Executor Service**: dispatcher routing by tool type
+
+### P1 - FE-BE API Contract (DONE)
+
+- [x] Fixed double `/api` prefix in all FE API routes (16 files)
+- [x] Added response unwrapping interceptor (auto-unwrap `{ success, data }` envelope)
+- [x] Fixed RegisterDto field name (`name` → `fullName`)
+- [x] Fixed query params (`pageSize` → `limit`, `sort` → `sortBy`)
+- [x] Fixed SSE chat BASE_URL
+- [x] Removed all double `.data.data` access patterns
+
+---
+
 ## What's TODO (Phase 2 - For Next Developer)
 
 ### P0 - Critical (Must have to run end-to-end)
@@ -111,31 +144,13 @@ root/
 - [ ] Run seed: `cd apps/api && npm run seed` to insert built-in tools
 - [ ] Test: `npm run dev:api` starts without DB errors
 
-#### LLM Integration (replace mock)
+#### Tenant LLM Key Integration
 
-- [ ] `apps/api/src/modules/chat/chat.service.ts` - Replace `mockLLMStream()` with real LiteLLM API call
-- [ ] Fetch agent's `model_config.provider` → find `tenant_llm_keys` for that provider → decrypt API key
-- [ ] Call LiteLLM proxy (`http://litellm:4000/v1/chat/completions`) with streaming
-- [ ] Parse SSE from LiteLLM, forward tokens to client
-- [ ] Handle tool_calls in the LLM response (call tool executors, return results)
-
-#### LangGraph Agent Execution
-
-- [ ] Create `apps/api/src/modules/chat/langgraph/agent-graph.ts`
-- [ ] Implement LangGraph StateGraph: LLM Node → Tool Node → loop back
-- [ ] Support Super Agent mode: Router → sub-agents → Combiner
-- [ ] Wire into chat.service.ts to replace direct LLM calls
+- [ ] Fetch agent's `model_config.provider` → find `tenant_llm_keys` for that provider
+- [ ] Decrypt API key and pass to LlmService instead of using LiteLLM master key
+- [ ] Add tenant LLM key management UI in Settings page
 
 ### P1 - Important (Core features fully working)
-
-#### Tool Executors (currently mock)
-
-- [ ] `apps/api/src/modules/tools/executors/http.executor.ts` - Make real HTTP requests
-- [ ] `apps/api/src/modules/tools/executors/code.executor.ts` - Execute code in sandbox (Docker container)
-- [ ] `apps/api/src/modules/tools/executors/db-query.executor.ts` - Execute SQL on connected DB
-- [ ] `apps/api/src/modules/tools/executors/mcp-server.executor.ts` - Connect to MCP servers
-- [ ] `apps/api/src/modules/tools/executors/web-search.executor.ts` - Call search API (Google/Bing)
-- [ ] Wire tool-executor.service.ts to dispatch by tool type
 
 #### Knowledge Base Processing
 
@@ -157,6 +172,14 @@ root/
 - [ ] RabbitMQ consumer for `workflow.execute` queue (async long-running workflows)
 - [ ] SSE endpoint for real-time execution progress
 
+#### Tool Executors Enhancement
+
+- [ ] DB Query: real database connection pool management
+- [ ] Code: Python execution via Docker container
+- [ ] File Parser: PDF (pdf-parse) and DOCX (mammoth) support
+- [ ] Email: real SMTP integration
+- [ ] MCP: full Model Context Protocol implementation
+
 #### FE-BE Integration Testing
 
 - [ ] Test login → redirect → agent list flow
@@ -164,7 +187,6 @@ root/
 - [ ] Test file upload (knowledge, avatar)
 - [ ] Test tool CRUD and test panel
 - [ ] Test workflow create/edit with React Flow
-- [ ] Fix any API contract mismatches between FE types and BE DTOs
 
 ### P2 - Nice to Have
 

@@ -9,11 +9,8 @@ import { WorkflowExecutionLog } from './entities/workflow-execution-log.entity';
 import { CreateWorkflowDto } from './dto/create-workflow.dto';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { ExecuteWorkflowDto } from './dto/execute-workflow.dto';
-import {
-  ExecutionStatus,
-  ExecutionLogStatus,
-} from './enums/workflow.enums';
 import { RequestContextService } from '../../common/context';
+import { WorkflowEngineService } from './workflow-engine.service';
 
 @Injectable()
 export class WorkflowsService {
@@ -30,6 +27,7 @@ export class WorkflowsService {
     private readonly logRepo: Repository<WorkflowExecutionLog>,
     private readonly dataSource: DataSource,
     private readonly ctx: RequestContextService,
+    private readonly workflowEngine: WorkflowEngineService,
   ) {}
 
   async findAll() {
@@ -164,46 +162,7 @@ export class WorkflowsService {
     dto: ExecuteWorkflowDto,
   ): Promise<WorkflowExecution> {
     const workflow = await this.findOne(id);
-
-    const startedAt = new Date();
-
-    // Create execution record
-    const execution = this.executionRepo.create({
-      tenant_id: this.ctx.tenantId,
-      workflow_id: id,
-      workflow_version: workflow.version,
-      status: ExecutionStatus.RUNNING,
-      trigger_type: 'manual',
-      input: dto.input,
-      triggered_by: this.ctx.userId,
-      started_at: startedAt,
-    });
-    const saved = await this.executionRepo.save(execution);
-
-    // Mock execution: create logs for each node
-    const nodes = workflow.nodes || [];
-    for (const node of nodes) {
-      const log = this.logRepo.create({
-        tenant_id: this.ctx.tenantId,
-        execution_id: saved.id,
-        node_id: node.id,
-        status: ExecutionLogStatus.COMPLETED,
-        input: dto.input,
-        output: { result: `Node "${node.label}" executed successfully (mock)` },
-        duration_ms: Math.floor(Math.random() * 1000),
-        started_at: new Date(),
-        completed_at: new Date(),
-      });
-      await this.logRepo.save(log);
-    }
-
-    // Complete execution
-    const completedAt = new Date();
-    saved.status = ExecutionStatus.COMPLETED;
-    saved.output = { message: 'Workflow executed successfully (mock)' };
-    saved.duration_ms = completedAt.getTime() - startedAt.getTime();
-    saved.completed_at = completedAt;
-    return this.executionRepo.save(saved);
+    return this.workflowEngine.execute(workflow, dto.input);
   }
 
   async getExecutions(workflowId: string) {

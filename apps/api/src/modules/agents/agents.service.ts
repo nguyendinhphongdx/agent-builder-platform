@@ -15,6 +15,9 @@ import { QueryAgentDto } from './dto/query-agent.dto';
 import { ShareAgentDto } from './dto/share-agent.dto';
 import { AddCollaboratorDto } from './dto/add-collaborator.dto';
 import { RequestContextService } from '../../common/context';
+import { CacheService } from '../../common/redis';
+
+const AGENT_CACHE_TTL = 300; // 5 minutes
 
 @Injectable()
 export class AgentsService {
@@ -29,6 +32,7 @@ export class AgentsService {
     private readonly collaboratorRepo: Repository<AgentCollaborator>,
     private readonly dataSource: DataSource,
     private readonly ctx: RequestContextService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async findAll(query: QueryAgentDto) {
@@ -82,6 +86,14 @@ export class AgentsService {
   }
 
   async findOne(id: string): Promise<Agent> {
+    const cacheKey = `agent:${this.ctx.tenantId}:${id}`;
+
+    // Try cache first
+    const cached = await this.cacheService.get<Agent>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const agent = await this.agentRepo.findOne({
       where: { id, tenant_id: this.ctx.tenantId },
       relations: [
@@ -96,6 +108,10 @@ export class AgentsService {
     if (!agent) {
       throw new NotFoundException('Agent not found');
     }
+
+    // Cache the result
+    await this.cacheService.set(cacheKey, agent, AGENT_CACHE_TTL);
+
     return agent;
   }
 
@@ -146,13 +162,20 @@ export class AgentsService {
       agent.version = agent.version + 1;
       agent.updated_by = this.ctx.userId;
 
-      return manager.save(agent);
+      const saved = await manager.save(agent);
+
+      // Invalidate cache
+      await this.cacheService.del(`agent:${this.ctx.tenantId}:${id}`);
+
+      return saved;
     });
   }
 
   async softDelete(id: string): Promise<void> {
     const agent = await this.findOne(id);
     await this.agentRepo.softRemove(agent);
+    // Invalidate cache
+    await this.cacheService.del(`agent:${this.ctx.tenantId}:${id}`);
   }
 
   async duplicate(id: string): Promise<Agent> {

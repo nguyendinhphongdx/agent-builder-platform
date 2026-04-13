@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatSession } from './entities/chat-session.entity';
@@ -7,9 +7,12 @@ import { CreateSessionDto } from './dto/create-session.dto';
 import { MessageRole, ContentType } from './enums/chat-status.enum';
 import { Agent } from '../agents/entities/agent.entity';
 import { RequestContextService } from '../../common/context';
+import { LlmService } from './llm/llm.service';
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @InjectRepository(ChatSession)
     private readonly sessionRepo: Repository<ChatSession>,
@@ -18,6 +21,7 @@ export class ChatService {
     @InjectRepository(Agent)
     private readonly agentRepo: Repository<Agent>,
     private readonly ctx: RequestContextService,
+    private readonly llmService: LlmService,
   ) {}
 
   async createSession(dto: CreateSessionDto): Promise<ChatSession> {
@@ -113,14 +117,52 @@ export class ChatService {
     });
   }
 
-  async *mockLLMStream(messages: any[], agentConfig: any): AsyncGenerator<string> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  async *mockLLMStream(messages: Array<{ role: string; content: string }>, agent: Agent): AsyncGenerator<string> {
     const lastMessage = messages[messages.length - 1];
-    const response = `I'm ${agentConfig.name}, an AI assistant. You said: "${lastMessage?.content || ''}". I'm configured with ${agentConfig.instructions ? 'custom instructions' : 'default settings'}.`;
+    const response = `I'm ${agent.name}, an AI assistant. You said: "${lastMessage?.content || ''}". I'm configured with ${agent.instructions ? 'custom instructions' : 'default settings'}.`;
     const words = response.split(' ');
     for (const word of words) {
       yield word + ' ';
       await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+
+  async *streamResponse(
+    messages: Array<{ role: string; content: string }>,
+    agent: Agent,
+  ): AsyncGenerator<{ type: 'token' | 'tool_call' | 'done' | 'error'; data: Record<string, unknown> }> {
+    const model = (agent.model_config?.model as string) || 'gpt-3.5-turbo';
+    try {
+      const systemMessages: Array<{ role: string; content: string }> = [];
+      if (agent.instructions) {
+        systemMessages.push({ role: 'system', content: agent.instructions });
+      }
+      const fullMessages = [...systemMessages, ...messages];
+
+      const stream = this.llmService.streamCompletion(model, fullMessages, {
+        temperature: agent.model_config?.temperature as number | undefined,
+        maxTokens: agent.model_config?.maxTokens as number | undefined,
+      });
+
+      for await (const event of stream) {
+        if (event.type === 'error') {
+          const errorData = event.data as Record<string, unknown>;
+          this.logger.warn(`LLM error, falling back to mock: ${String(errorData.message)}`);
+          for await (const token of this.mockLLMStream(messages, agent)) {
+            yield { type: 'token', data: { delta: token } };
+          }
+          yield { type: 'done', data: { usage: null } };
+          return;
+        }
+        yield event;
+      }
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`LLM call failed, falling back to mock: ${errMsg}`);
+      for await (const token of this.mockLLMStream(messages, agent)) {
+        yield { type: 'token', data: { delta: token } };
+      }
+      yield { type: 'done', data: { usage: null } };
     }
   }
 
